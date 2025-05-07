@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { db } from '$lib/db';
+  import ClientOnlyChart from './ClientOnlyChart.svelte';
 
   /**
    * @type {Array<{id: any, type: string, duration: number, notes: string, date: string}>}
@@ -157,6 +158,11 @@
             {/each}
           </ul>
         </div>
+      </div>
+      <div class="mt-8">
+        {#if browser}
+          <ClientOnlyChart {durationByType} />
+        {/if}
       </div>
     </div>
   </div>

@@ -7,14 +7,14 @@
 
   onMount(async () => {
     // Enregistrement du service worker
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker enregistré avec succès:', registration);
-      } catch (error) {
-        console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
-      }
-    }
+    // if ('serviceWorker' in navigator) {
+    //   try {
+    //     const registration = await navigator.serviceWorker.register('/sw.js');
+    //     console.log('Service Worker enregistré avec succès:', registration);
+    //   } catch (error) {
+    //     console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
+    //   }
+    // }
 
     // Gestion de l'installation de la PWA
     window.addEventListener('beforeinstallprompt', (e) => {
