@@ -3,6 +3,9 @@
   import { browser } from '$app/environment';
   import { db } from '$lib/db';
   import ClientOnlyChart from './ClientOnlyChart.svelte';
+  import OnboardingTour from '$lib/OnboardingTour.svelte';
+  import { goto } from '$app/navigation';
+  import { onboardingRequested } from '$lib/onboarding';
 
   /**
    * @type {Array<{id: any, type: string, duration: number, notes: string, date: string}>}
@@ -31,6 +34,58 @@
   let countByType = {};
   let totalDuration = 0;
   let totalCount = 0;
+
+  let showOnboarding = false;
+  let onboardingSteps = [
+    {
+      selector: '.nav-link[href="/"]',
+      title: 'Dashboard',
+      description: 'Ceci est votre tableau de bord principal. Retrouvez ici vos activités et statistiques.'
+    },
+    {
+      selector: '.nav-link[href="/stats"]',
+      title: 'Statistiques',
+      description: 'Accédez à vos statistiques détaillées et visualisez vos progrès.'
+    },
+    {
+      selector: '.nav-link[href="/activities"]',
+      title: 'Activités',
+      description: 'Gérez et ajoutez vos activités quotidiennes ici.'
+    },
+    {
+      selector: '.sync-btn',
+      title: 'Synchronisation',
+      description: "Synchronisez vos données avec l'extension FocusFlow pour une expérience enrichie."
+    },
+    {
+      selector: 'form',
+      title: 'Ajouter une activité',
+      description: 'Ajoutez rapidement une nouvelle activité à votre journal.'
+    },
+    {
+      selector: '.onboarding-chart',
+      title: 'Graphique',
+      description: "Visualisez la répartition de votre temps par type d'activité."
+    }
+  ];
+
+  onMount(() => {
+    // Détecte si c'est un nouveau compte (flag onboarding)
+    const user = JSON.parse(localStorage.getItem('offtrack_user') || '{}');
+    if (user && !user.onboarded) {
+      showOnboarding = true;
+    }
+    // Déclenche le didacticiel si demandé via settings
+    if (localStorage.getItem('offtrack_onboarding_requested') === 'true') {
+      showOnboarding = true;
+      localStorage.removeItem('offtrack_onboarding_requested');
+      // Supprime le flag onboarded pour permettre le tour
+      if (user && user.email) {
+        delete user.onboarded;
+        localStorage.setItem('offtrack_user', JSON.stringify(user));
+      }
+    }
+  });
 
   onMount(async () => {
     if (browser) {
@@ -81,6 +136,36 @@
       await loadActivities();
     }
   }
+
+  function finishOnboarding() {
+    showOnboarding = false;
+    // Marque le compte comme onboardé
+    const user = JSON.parse(localStorage.getItem('offtrack_user') || '{}');
+    user.onboarded = true;
+    localStorage.setItem('offtrack_user', JSON.stringify(user));
+  }
+
+  function relancerOnboarding() {
+    const user = JSON.parse(localStorage.getItem('offtrack_user') || '{}');
+    if (user && user.email) {
+      delete user.onboarded;
+      localStorage.setItem('offtrack_user', JSON.stringify(user));
+      showOnboarding = true;
+    }
+  }
+
+  onboardingRequested.subscribe(val => {
+    if (val) {
+      showOnboarding = true;
+      onboardingRequested.set(false);
+      // Supprime le flag onboarded pour permettre le tour
+      const user = JSON.parse(localStorage.getItem('offtrack_user') || '{}');
+      if (user && user.email) {
+        delete user.onboarded;
+        localStorage.setItem('offtrack_user', JSON.stringify(user));
+      }
+    }
+  });
 </script>
 
 <div class="max-w-4xl mx-auto">
@@ -159,7 +244,7 @@
           </ul>
         </div>
       </div>
-      <div class="mt-8">
+      <div class="mt-8 onboarding-chart">
         {#if browser}
           <ClientOnlyChart {durationByType} />
         {/if}
@@ -199,4 +284,6 @@
       {/if}
     </div>
   </div>
+
+  <OnboardingTour steps={onboardingSteps} active={showOnboarding} on:finish={finishOnboarding} />
 </div>
