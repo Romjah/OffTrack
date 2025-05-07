@@ -3,6 +3,9 @@
   import { browser } from '$app/environment';
   import { db } from '$lib/db';
 
+  /**
+   * @type {Array<{id: any, type: string, duration: number, notes: string, date: string}>}
+   */
   let activities = [];
   let newActivity = {
     type: '',
@@ -20,6 +23,14 @@
     'Autre'
   ];
 
+  // Statistiques
+  /** @type {{[key: string]: number}} */
+  let durationByType = {};
+  /** @type {{[key: string]: number}} */
+  let countByType = {};
+  let totalDuration = 0;
+  let totalCount = 0;
+
   onMount(async () => {
     if (browser) {
       await loadActivities();
@@ -29,7 +40,20 @@
   async function loadActivities() {
     if (!browser) return;
     activities = await db.getActivities();
-    activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+    activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    computeStats();
+  }
+
+  function computeStats() {
+    totalDuration = 0;
+    totalCount = activities.length;
+    durationByType = {};
+    countByType = {};
+    for (const a of activities) {
+      totalDuration += Number(a.duration) || 0;
+      durationByType[a.type] = (durationByType[a.type] || 0) + (Number(a.duration) || 0);
+      countByType[a.type] = (countByType[a.type] || 0) + 1;
+    }
   }
 
   async function addActivity() {
@@ -46,6 +70,9 @@
     await loadActivities();
   }
 
+  /**
+   * @param {any} id
+   */
   async function deleteActivity(id) {
     if (!browser) return;
     if (confirm('Êtes-vous sûr de vouloir supprimer cette activité ?')) {
@@ -109,6 +136,29 @@
         Ajouter l'activité
       </button>
     </form>
+  </div>
+
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="p-6">
+      <h2 class="text-xl font-semibold mb-4">Statistiques</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-medium">Nombre total d'activités : <span class="text-blue-700">{totalCount}</span></p>
+          <p class="font-medium">Temps total passé : <span class="text-blue-700">{totalDuration} min</span></p>
+        </div>
+        <div>
+          <p class="font-medium mb-2">Par type :</p>
+          <ul class="text-sm">
+            {#each Object.keys(countByType) as type}
+              <li>
+                <span class="font-semibold">{type} :</span>
+                {countByType[type]} activité{countByType[type] > 1 ? 's' : ''} — {durationByType[type]} min
+              </li>
+            {/each}
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="bg-white rounded-lg shadow">
